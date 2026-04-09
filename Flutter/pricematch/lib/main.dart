@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart'; // Importa dotenv
+import 'package:pricematch/pages/search_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
@@ -130,32 +131,32 @@ class PriceMatchHomePage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // Botón principal con el color morado de tu logo
-                    ElevatedButton(
-                      onPressed: () {
-                        // Aquí irás a la pantalla de búsqueda principal
-                        print('Iniciando búsqueda...');
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: logoPurple, // Usamos el color de tu logo
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 18),
-                        elevation: 4,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        'Empezar a buscar',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                  ElevatedButton(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SearchPage()),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: logoPurple,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 18),
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
+                    child: const Text(
+                      'Empezar a buscar',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                    ),
+                  ),
                     const SizedBox(height: 16),
                     // Botón secundario para login/registro
                     TextButton(
-                      onPressed: () {
-                        // Aquí irás a la pantalla de login/registro
-                        print('Creando cuenta...');
-                      },
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const SearchPage()),
+                      ),
                       style: TextButton.styleFrom(
                         foregroundColor: logoRed, // Acento rojo del logo
                         padding: const EdgeInsets.symmetric(vertical: 16),
