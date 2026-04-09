@@ -195,6 +195,17 @@ class _PrecioCard extends StatelessWidget {
                       color: sitioColor,
                     ),
                   ),
+                  // AGREGÁ ESTO
+                  if (precio['nombre'] != null)
+                    Text(
+                      precio['nombre'],
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade600,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   if (esMejor)
                     const Text('Mejor precio',
                         style: TextStyle(fontSize: 11, color: Colors.green)),
@@ -223,7 +234,10 @@ class _PrecioCard extends StatelessWidget {
                   TextButton(
                     onPressed: () async {
                       final url = Uri.parse(precio['url_producto']);
-                      if (await canLaunchUrl(url)) launchUrl(url);
+                      await launchUrl(
+                        url,
+                        mode: LaunchMode.externalApplication, // fuerza abrir en navegador
+                      );
                     },
                     style: TextButton.styleFrom(
                       padding: EdgeInsets.zero,
