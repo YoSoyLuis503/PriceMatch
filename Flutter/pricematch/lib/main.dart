@@ -2,23 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart'; // Importa dotenv
 import 'package:pricematch/pages/search_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/foundation.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 1. Cargar el archivo .env primero
-  await dotenv.load(fileName: ".env");
+  String supabaseUrl;
+  String supabaseAnonKey;
 
-  // 2. Leer las llaves de dotenv
-  final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
-  final supabaseAnonKey = dotenv.env['SUPABASE_KEY'] ?? '';
-
-  // Verificar que las llaves se cargaron
-  if (supabaseUrl.isEmpty || supabaseAnonKey.isEmpty) {
-    throw Exception('Error: Las llaves de Supabase no se encontraron en el archivo .env');
+  // En web no funciona dotenv, usamos las keys directamente
+  if (kIsWeb) {
+    supabaseUrl = 'https://wdvgyvjtcdymnzcwqcvw.supabase.co';        // tu URL
+    supabaseAnonKey = 'sb_publishable_3NRn2J6UCw_1gOCBPXHalw_zPrdYYum';                  // tu anon key
+  } else {
+    // En móvil seguimos usando .env
+    await dotenv.load(fileName: ".env");
+    supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
+    supabaseAnonKey = dotenv.env['SUPABASE_KEY'] ?? '';
   }
 
-  // 3. Inicializar Supabase con las llaves seguras
   await Supabase.initialize(
     url: supabaseUrl,
     anonKey: supabaseAnonKey,
