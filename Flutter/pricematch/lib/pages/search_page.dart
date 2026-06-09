@@ -51,6 +51,19 @@ class _SearchPageState extends State<SearchPage> {
             fontWeight: FontWeight.bold,
           ),
         ),
+        actions: [
+          if (supabase.auth.currentUser != null)
+            IconButton(
+              icon: const Icon(Icons.logout),
+              onPressed: () async {
+                await supabase.auth.signOut();
+
+                if (context.mounted) {
+                  Navigator.popUntil(context, (route) => route.isFirst);
+                }
+              },
+            ),
+        ],
       ),
       body: Column(
         children: [

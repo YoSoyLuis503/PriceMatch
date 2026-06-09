@@ -41,6 +41,40 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       setState(() { _cargando = false; });
     }
   }
+  Future<void> _guardarFavorito() async {
+    final user = supabase.auth.currentUser;
+
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Debes iniciar sesión'),
+        ),
+      );
+      return;
+    }
+
+    try {
+      await supabase.from('favoritos').insert({
+        'usuario_id': user.id,
+        'producto_id': widget.masterId,
+        'nombre_producto': widget.nombre,
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Producto guardado'),
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+        ),
+      );
+    }
+  }
 
   Color _getSitioColor(String? sitio) {
     switch (sitio?.toLowerCase()) {
@@ -71,8 +105,18 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         iconTheme: const IconThemeData(color: logoPurple),
         title: const Text(
           'Comparar precios',
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Colors.black87,
+            fontWeight: FontWeight.bold,
+          ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.favorite_border),
+            tooltip: 'Guardar producto',
+            onPressed: _guardarFavorito,
+          ),
+        ],
       ),
       body: _cargando
           ? const Center(child: CircularProgressIndicator(color: logoPurple))
