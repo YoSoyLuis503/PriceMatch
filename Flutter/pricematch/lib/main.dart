@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart'; // Importa dotenv
-import 'package:pricematch/pages/search_page.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:pricematch/pages/search_page.dart';
+import 'package:pricematch/pages/login_page.dart';
+import 'package:pricematch/pages/favoritos_page.dart';
 import 'package:flutter/foundation.dart';
 
 void main() async {
@@ -29,7 +31,6 @@ void main() async {
   runApp(const MyApp());
 }
 
-// Cliente global
 final supabase = Supabase.instance.client;
 
 class MyApp extends StatelessWidget {
@@ -38,12 +39,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false, // Quita la banda de debug
+      debugShowCheckedModeBanner: false,
       title: 'PriceMatch',
       theme: ThemeData(
-        // Color base del carrito (un morado azulado)
-        primarySwatch: Colors.deepPurple,
-        // Usamos Material 3 para un look más moderno
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF6356E5)),
         useMaterial3: true,
       ),
       home: const PriceMatchHomePage(),
@@ -51,17 +50,42 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class PriceMatchHomePage extends StatelessWidget {
+class PriceMatchHomePage extends StatefulWidget {
   const PriceMatchHomePage({super.key});
 
   @override
+  State<PriceMatchHomePage> createState() => _PriceMatchHomePageState();
+}
+
+class _PriceMatchHomePageState extends State<PriceMatchHomePage> {
+  // Colores consistentes con tu LoginPage
+  static const Color primaryColor = Color(0xFF6356E5);
+  static const Color accentColor = Color(0xFFFF3B3B);
+
+  @override
   Widget build(BuildContext context) {
-    // Definimos los colores exactos de tu logo para usarlos como acentos
-    const Color logoPurple = Color(0xFF676AF2); // Morado/azul del carrito
-    const Color logoRed = Color(0xFFFF4842);    // Rojo de 'Match'
+    final user = supabase.auth.currentUser;
 
     return Scaffold(
       backgroundColor: Colors.white,
+      // AppBar transparente para el botón de cerrar sesión
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: user != null
+            ? [
+                IconButton(
+                  icon: const Icon(Icons.logout, color: accentColor, size: 28),
+                  onPressed: () async {
+                    await supabase.auth.signOut();
+                    if (mounted) {
+                      setState(() {}); // Recarga la página actual inmediatamente
+                    }
+                  },
+                ),
+              ]
+            : null,
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -76,7 +100,7 @@ class PriceMatchHomePage extends StatelessWidget {
                   child: Hero(
                     tag: 'logo',
                     child: Image.asset(
-                      'assets/images/logo_pricematch.jpeg', // Tu logo aquí
+                      'assets/images/logo_pricematch.jpeg',
                       fit: BoxFit.contain,
                       width: 250,
                     ),
@@ -95,30 +119,30 @@ class PriceMatchHomePage extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 36,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: Color(0xFF2D2D2D),
                         ),
                         children: [
                           TextSpan(text: '¡Encuentra el mejor\n'),
                           TextSpan(
                             text: 'precio',
-                            style: TextStyle(color: logoPurple), // Color del carrito
+                            style: TextStyle(color: primaryColor),
                           ),
                           TextSpan(text: ' en '),
                           TextSpan(
                             text: 'El Salvador',
-                            style: TextStyle(color: logoRed), // Acento rojo
+                            style: TextStyle(color: accentColor),
                           ),
                           TextSpan(text: '!'),
                         ],
                       ),
                     ),
                     const SizedBox(height: 16),
-                    const Text(
+                    Text(
                       'Ahorra tiempo y dinero comparando precios en tus supermercados y farmacias favoritas.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 16,
-                        color: Colors.black54,
+                        color: Colors.grey.shade600,
                         height: 1.4,
                       ),
                     ),
@@ -132,40 +156,54 @@ class PriceMatchHomePage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Botón principal con el color morado de tu logo
-                  ElevatedButton(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const SearchPage()),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: logoPurple,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 18),
-                      elevation: 4,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'Empezar a buscar',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                    const SizedBox(height: 16),
-                    // Botón secundario para login/registro
-                    TextButton(
+                    // Botón principal
+                    ElevatedButton(
                       onPressed: () => Navigator.push(
                         context,
                         MaterialPageRoute(builder: (_) => const SearchPage()),
                       ),
-                      style: TextButton.styleFrom(
-                        foregroundColor: logoRed, // Acento rojo del logo
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        elevation: 4,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       child: const Text(
-                        'Crear mi lista de compras',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        'Empezar a buscar',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Botón dinámico con lógica de refresco al volver de Login
+                    TextButton(
+                      onPressed: () async {
+                        if (user == null) {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const LoginPage()),
+                          );
+                          if (mounted) setState(() {}); // Recarga la interfaz al volver
+                        } else {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const FavoritosPage()),
+                          );
+                        }
+                      },
+                      style: TextButton.styleFrom(
+                        foregroundColor: accentColor,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: Text(
+                        user == null ? 'Iniciar Sesión' : 'Mi Lista de Compras',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],
