@@ -21,6 +21,7 @@ class ProductDetailPage extends StatefulWidget {
 class _ProductDetailPageState extends State<ProductDetailPage> {
   List<Map<String, dynamic>> _precios = [];
   bool _cargando = true;
+  bool _esFavorito = false; // <-- NUEVO: Guarda si el producto ya es favorito
 
   static const Color logoPurple = Color(0xFF676AF2);
 
@@ -28,6 +29,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   void initState() {
     super.initState();
     _cargarPrecios();
+    _verificarFavorito(); // <-- NUEVO: Verifica el estado al iniciar
   }
 
   Future<void> _cargarPrecios() async {
@@ -41,37 +43,74 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       setState(() { _cargando = false; });
     }
   }
-  Future<void> _guardarFavorito() async {
+
+  // <-- NUEVO: Comprueba si el usuario ya guardó este producto
+  Future<void> _verificarFavorito() async {
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
+
+    try {
+      final data = await supabase
+          .from('favoritos')
+          .select()
+          .eq('usuario_id', user.id)
+          .eq('producto_id', widget.masterId)
+          .maybeSingle(); // Retorna un registro o null
+
+      if (mounted) {
+        setState(() {
+          _esFavorito = data != null; // Si no es null, ya es favorito
+        });
+      }
+    } catch (e) {
+      print('Error al verificar favorito: $e');
+    }
+  }
+
+  // MODIFICADO: Ahora agrega o elimina dinámicamente (Toggle)
+  Future<void> _toggleFavorito() async {
     final user = supabase.auth.currentUser;
 
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Debes iniciar sesión'),
-        ),
+        const SnackBar(content: Text('Debes iniciar sesión para guardar favoritos')),
       );
       return;
     }
 
     try {
-      await supabase.from('favoritos').insert({
-        'usuario_id': user.id,
-        'producto_id': widget.masterId,
-        'nombre_producto': widget.nombre,
-      });
+      if (_esFavorito) {
+        // Si ya es favorito, lo eliminamos
+        await supabase
+            .from('favoritos')
+            .delete()
+            .eq('usuario_id', user.id)
+            .eq('producto_id', widget.masterId);
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Producto guardado'),
-          ),
-        );
+        setState(() { _esFavorito = false; });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Producto eliminado de tu lista')),
+          );
+        }
+      } else {
+        // Si no es favorito, lo agregamos (Tu lógica original)
+        await supabase.from('favoritos').insert({
+          'usuario_id': user.id,
+          'producto_id': widget.masterId,
+          'nombre_producto': widget.nombre,
+        });
+
+        setState(() { _esFavorito = true; });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('¡Producto guardado en tu lista!')),
+          );
+        }
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-        ),
+        SnackBar(content: Text('Error: $e')),
       );
     }
   }
@@ -111,10 +150,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           ),
         ),
         actions: [
+          // MODIFICADO: El icono cambia de color y forma según el estado
           IconButton(
-            icon: const Icon(Icons.favorite_border),
-            tooltip: 'Guardar producto',
-            onPressed: _guardarFavorito,
+            icon: Icon(
+              _esFavorito ? Icons.favorite : Icons.favorite_border,
+              color: _esFavorito ? Colors.red : logoPurple,
+            ),
+            tooltip: _esFavorito ? 'Eliminar de la lista' : 'Guardar producto',
+            onPressed: _toggleFavorito,
           ),
         ],
       ),
@@ -125,7 +168,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Imagen y nombre
                   Center(
                     child: imagen.isNotEmpty
                         ? Image.network(imagen, height: 180, fit: BoxFit.contain,
@@ -140,7 +182,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Mejor precio destacado
                   if (mejorPrecio != null) ...[
                     Container(
                       padding: const EdgeInsets.all(16),
@@ -170,7 +211,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     const SizedBox(height: 24),
                   ],
 
-                  // Lista de precios por supermercado
                   const Text('Precios por supermercado',
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 12),
@@ -188,6 +228,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 }
 
+// (Tu clase _PrecioCard se mantiene exactamente igual abajo...)
 class _PrecioCard extends StatelessWidget {
   final Map<String, dynamic> precio;
   final bool esMejor;
@@ -208,15 +249,12 @@ class _PrecioCard extends StatelessWidget {
       elevation: esMejor ? 3 : 1,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: esMejor
-            ? BorderSide(color: sitioColor, width: 2)
-            : BorderSide.none,
+        side: esMejor ? BorderSide(color: sitioColor, width: 2) : BorderSide.none,
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            // Ícono del supermercado
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
@@ -226,69 +264,48 @@ class _PrecioCard extends StatelessWidget {
               child: Icon(sitioIcon, color: sitioColor),
             ),
             const SizedBox(width: 12),
-
-            // Nombre supermercado
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     precio['sitio']?.toString().toUpperCase() ?? '',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: sitioColor,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.bold, color: sitioColor),
                   ),
-                  // AGREGÁ ESTO
                   if (precio['nombre'] != null)
                     Text(
                       precio['nombre'],
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey.shade600,
-                      ),
+                      style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                   if (esMejor)
-                    const Text('Mejor precio',
-                        style: TextStyle(fontSize: 11, color: Colors.green)),
+                    const Text('Mejor precio', style: TextStyle(fontSize: 11, color: Colors.green)),
                 ],
               ),
             ),
-
-            // Precio + botón ir
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
                   () {
                     final p = precio['precio'];
-                    final val = p is String 
-                        ? double.tryParse(p) 
-                        : (p as num?)?.toDouble();
+                    final val = p is String ? double.tryParse(p) : (p as num?)?.toDouble();
                     return '\$${val?.toStringAsFixed(2) ?? '-'}';
                   }(),
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 if (precio['url_producto'] != null)
                   TextButton(
                     onPressed: () async {
                       final url = Uri.parse(precio['url_producto']);
-                      await launchUrl(
-                        url,
-                        mode: LaunchMode.externalApplication, // fuerza abrir en navegador
-                      );
+                      await launchUrl(url, mode: LaunchMode.externalApplication);
                     },
                     style: TextButton.styleFrom(
                       padding: EdgeInsets.zero,
                       minimumSize: Size.zero,
                     ),
-                    child: const Text('Ver en tienda →',
-                        style: TextStyle(fontSize: 12)),
+                    child: const Text('Ver en tienda →', style: TextStyle(fontSize: 12)),
                   ),
               ],
             ),
